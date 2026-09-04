@@ -207,11 +207,62 @@ def search(
         console.print(Panel(body, title=title, border_style="blue"))
 
 
+@app.command()
+def ask(
+    prompt: str = typer.Argument(..., help="Domanda o richiesta di codice (es. 'come impostare una routine raster interrupt')"),
+    provider: str = typer.Option("offline", help="Provider LLM da utilizzare: offline, ollama, gemini, openai"),
+    model: str = typer.Option(None, help="Nome del modello specifico (es. qwen2.5-coder per Ollama)"),
+    code: str = typer.Option("", help="Snippet di codice assembly iniziale (opzionale)"),
+    auto_fix: bool = typer.Option(True, "--auto-fix/--no-auto-fix", help="Abilita il ciclo di auto-correzione se il validatore trova errori"),
+):
+    """Interroga l'assistente ibrido C64 con contesto RAG e validazione deterministica automatica."""
+    from c64_assistant.ai.engine import AssistantEngine
+    from rich.syntax import Syntax
+
+    console.print(f"[bold cyan]Interrogazione Assistente C64[/] (Provider: [bold yellow]{provider}[/])...\n")
+
+    engine = AssistantEngine(provider=provider, model=model)
+    response = engine.ask(prompt, code_snippet=code, auto_fix=auto_fix)
+
+    console.print(Panel(response.explanation, title="Spiegazione Tecnica", border_style="cyan"))
+
+    if response.suggested_code:
+        syntax = Syntax(response.suggested_code, "nasm", theme="monokai", line_numbers=True)
+        console.print(Panel(syntax, title="Codice Assembly 6502 Generato", border_style="yellow"))
+
+    if response.validation_report:
+        rep = response.validation_report
+        t = rep.timing_report
+        status = "[bold green]VALIDO[/]" if rep.is_valid else "[bold red]NON VALIDO[/]"
+        fix_info = ""
+        if response.auto_fix_applied:
+            fix_info = f"\n[bold magenta]Auto-correzione applicata:[/] {response.fix_iterations} iterazione/i."
+
+        metrics = (
+            f"Stato Hardware: {status} | Errori: {rep.errors_count} | Warning: {rep.warnings_count}\n"
+            f"Cicli Stimati: {t.total_min_cycles} - {t.total_max_cycles} cicli | Dimensione: {t.total_bytes} bytes\n"
+            f"Linee Raster: ~{t.pal_raster_lines} PAL (63c) / ~{t.ntsc_raster_lines} NTSC (65c){fix_info}"
+        )
+        console.print(Panel(metrics, title="Report Validatore Deterministico", border_style="green" if rep.is_valid else "red"))
+
+        if rep.issues:
+            issue_table = Table(title="Dettaglio Avvisi / Problemi", border_style="yellow")
+            issue_table.add_column("Riga", justify="right")
+            issue_table.add_column("Livello")
+            issue_table.add_column("Messaggio")
+            issue_table.add_column("Suggerimento", style="italic green")
+            for iss in rep.issues:
+                color = "red" if iss.severity == "ERROR" else "yellow"
+                issue_table.add_row(str(iss.line_number), f"[{color}]{iss.severity}[/]", iss.message, iss.suggestion)
+            console.print(issue_table)
+
+
 def main():
     app()
 
 
 if __name__ == "__main__":
     main()
+
 
 

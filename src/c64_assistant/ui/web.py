@@ -15,8 +15,9 @@ def run_app():
     st.title("🕹️ Commodore 64 & 6502 Assistant")
     st.caption("Motore ibrido: AI di Dominio + Validatore Deterministico Hardware (Ispirato a Rizzo AI Academy)")
 
-    tab_code, tab_mem, tab_banking, tab_rag = st.tabs([
+    tab_code, tab_ai, tab_mem, tab_banking, tab_rag = st.tabs([
         "⚡ Analizzatore & Validatore Assembly",
+        "🤖 Assistente AI & Guardrails",
         "🔍 Memory Inspector",
         "🎛️ Banking 6510 ($0001)",
         "📚 Knowledge Base RAG",
@@ -78,6 +79,68 @@ loop:
                     "Note": item.notes,
                 })
             st.dataframe(table_data, use_container_width=True)
+
+    with tab_ai:
+        st.subheader("Assistente Intelligente Ibrido (AI + RAG + Guardrails)")
+        st.caption("Il codice generato viene sottoposto a verifica hardware deterministica ed eventuale auto-correzione prima di essere mostrato.")
+
+        col_p, col_f = st.columns([2, 1])
+        with col_p:
+            provider_choice = st.selectbox(
+                "Provider Modello:",
+                ["offline (Template deterministici locali)", "ollama (Locale 100% via localhost:11434)", "gemini", "openai"],
+            )
+            provider_clean = provider_choice.split()[0].lower()
+        with col_f:
+            auto_fix_toggle = st.checkbox("Self-Healing Guardrails (Auto-correzione)", value=True)
+
+        user_prompt = st.text_area(
+            "Cosa vuoi realizzare in Assembly 6502?",
+            value="Come posso impostare un interrupt raster per cambiare il colore del bordo a riga fissa?",
+            height=100,
+        )
+        ask_btn = st.button("🚀 Chiedi all'Assistente", type="primary")
+
+        if ask_btn and user_prompt:
+            from c64_assistant.ai.engine import AssistantEngine
+
+            with st.spinner("Interrogazione RAG e validazione hardware in corso..."):
+                engine = AssistantEngine(provider=provider_clean)
+                try:
+                    ai_response = engine.ask(user_prompt, auto_fix=auto_fix_toggle)
+
+                    st.write("### Spiegazione Tecnica")
+                    st.markdown(ai_response.explanation)
+
+                    if ai_response.suggested_code:
+                        st.write("### Codice Assembly 6502 Verificato")
+                        st.code(ai_response.suggested_code, language="assembly")
+
+                    if ai_response.auto_fix_applied:
+                        st.info(f"🛠️ **Auto-correzione applicata:** {ai_response.fix_iterations} iterazione/i.")
+                        for h in ai_response.fix_history:
+                            st.caption(f"- {h}")
+
+                    if ai_response.validation_report:
+                        vrep = ai_response.validation_report
+                        vt = vrep.timing_report
+                        st.write("### Certificazione Validatore Deterministico")
+                        if vrep.is_valid:
+                            st.success("✅ Codice conforme al 100% alle specifiche hardware del 6502 NMOS.")
+                        else:
+                            st.error(f"❌ Codice non conforme: {vrep.errors_count} errori riscontrati.")
+
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Cicli Min - Max", f"{vt.total_min_cycles} - {vt.total_max_cycles}")
+                        c2.metric("Linee Raster PAL (63c)", f"~{vt.pal_raster_lines}")
+                        c3.metric("Dimensione", f"{vt.total_bytes} bytes")
+
+                    if ai_response.hardware_context:
+                        with st.expander("📚 Riferimenti Manuali C64 Inclusi nel Prompt (RAG)"):
+                            for ctx in ai_response.hardware_context:
+                                st.markdown(ctx)
+                except Exception as e:
+                    st.error(f"Errore durante l'esecuzione: {e}")
 
     with tab_mem:
         st.subheader("Ispezione Aree e Registri Commodore 64")
