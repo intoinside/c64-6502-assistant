@@ -53,6 +53,9 @@ all = [
 [project.scripts]
 c64-assistant = "c64_assistant.ui.cli:main"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/c64_assistant"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
