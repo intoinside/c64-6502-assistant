@@ -19,9 +19,15 @@ class BaseLLMClient(ABC):
 class OllamaClient(BaseLLMClient):
     """Client per modelli eseguiti 100% in locale tramite Ollama (senza librerie esterne)."""
 
-    def __init__(self, model: str = "qwen2.5-coder:7b", host: str = "http://localhost:11434"):
+    def __init__(
+        self,
+        model: str = "qwen2.5-coder:7b",
+        host: str = "http://localhost:11434",
+        timeout: int = 300,
+    ):
         self.model = model
         self.host = host.rstrip("/")
+        self.timeout = timeout
 
     def generate(self, prompt: str, system_prompt: str = "") -> str:
         url = f"{self.host}/api/generate"
@@ -40,12 +46,19 @@ class OllamaClient(BaseLLMClient):
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
                 return result.get("response", "")
+        except urllib.error.TimeoutError as e:
+            raise TimeoutError(
+                f"Ollama non ha risposto entro {self.timeout}s. "
+                f"Il modello '{self.model}' potrebbe essere lento su CPU. "
+                f"Aumenta il timeout con OLLAMA_TIMEOUT nel file .env."
+            ) from e
         except urllib.error.URLError as e:
             raise ConnectionError(
-                f"Impossibile connettersi a Ollama su {self.host}. Verifica che Ollama sia in esecuzione (ollama serve). Dettagli: {e}"
+                f"Impossibile connettersi a Ollama su {self.host}. "
+                f"Verifica che Ollama sia in esecuzione (ollama serve). Dettagli: {e}"
             ) from e
 
 
@@ -239,8 +252,9 @@ def get_llm_client(
     p = provider.lower().strip()
     if p == "ollama":
         m = model or "qwen2.5-coder:7b"
-        host = base_url or "http://localhost:11434"
-        return OllamaClient(model=m, host=host)
+        host = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        timeout = int(os.getenv("OLLAMA_TIMEOUT", "300"))
+        return OllamaClient(model=m, host=host, timeout=timeout)
     elif p == "gemini":
         m = model or "gemini-2.5-flash"
         return GeminiClient(model=m, api_key=api_key)
