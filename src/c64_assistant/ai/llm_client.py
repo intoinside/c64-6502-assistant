@@ -19,7 +19,7 @@ class BaseLLMClient(ABC):
 class OllamaClient(BaseLLMClient):
     """Client per modelli eseguiti 100% in locale tramite Ollama (senza librerie esterne)."""
 
-    def __init__(self, model: str = "qwen2.5-coder", host: str = "http://localhost:11434"):
+    def __init__(self, model: str = "qwen2.5-coder:7b", host: str = "http://localhost:11434"):
         self.model = model
         self.host = host.rstrip("/")
 
@@ -238,7 +238,7 @@ def get_llm_client(
     """Factory per istanziare il client LLM appropriato."""
     p = provider.lower().strip()
     if p == "ollama":
-        m = model or "qwen2.5-coder"
+        m = model or "qwen2.5-coder:7b"
         host = base_url or "http://localhost:11434"
         return OllamaClient(model=m, host=host)
     elif p == "gemini":
