@@ -163,10 +163,55 @@ def banking(
     console.print(Panel(vis_content, title="Visibilità Mappa di Memoria", border_style="green"))
 
 
+@app.command()
+def lookup(
+    address: str = typer.Argument(..., help="Indirizzo esadecimale da cercare nei manuali (es. $D020, $D400, $FFD2)"),
+):
+    """Cerca la documentazione tecnica storica nei manuali per un dato indirizzo o registro."""
+    from c64_assistant.rag.retriever import C64KnowledgeRetriever
+
+    retriever = C64KnowledgeRetriever()
+    results = retriever.find_by_address(address)
+
+    if not results:
+        console.print(f"[yellow]Nessun riferimento specifico trovato nei manuali per l'indirizzo {address}.[/]")
+        return
+
+    console.print(f"[bold green]Trovate {len(results)} sezioni tecniche per {address}:[/]\n")
+    for res in results:
+        chips_str = f" [cyan][{', '.join(res.chunk.chips)}][/]" if res.chunk.chips else ""
+        panel_title = f"{res.chunk.source_title} - {res.chunk.section}{chips_str}"
+        console.print(Panel(res.chunk.content, title=panel_title, border_style="cyan"))
+
+
+@app.command()
+def search(
+    query: str = typer.Argument(..., help="Termini di ricerca tecnici (es. 'raster interrupt', 'sid adsr', 'banking 6510')"),
+    limit: int = typer.Option(3, help="Numero massimo di risultati da mostrare"),
+):
+    """Esegue una ricerca semantica/ibrida nella base di conoscenza dei manuali C64."""
+    from c64_assistant.rag.retriever import C64KnowledgeRetriever
+
+    retriever = C64KnowledgeRetriever()
+    results = retriever.query(query, max_results=limit)
+
+    if not results:
+        console.print(f"[yellow]Nessun documento trovato per la ricerca '{query}'.[/]")
+        return
+
+    console.print(f"[bold green]Top {len(results)} risultati di documentazione per '{query}':[/]\n")
+    for idx, res in enumerate(results, start=1):
+        chips_str = f" [cyan][{', '.join(res.chunk.chips)}][/]" if res.chunk.chips else ""
+        title = f"#{idx} [Score: {res.score}] {res.chunk.source_title} - {res.chunk.section}{chips_str}"
+        body = f"[dim]Motivo match: {res.match_reason}[/]\n\n{res.chunk.content}"
+        console.print(Panel(body, title=title, border_style="blue"))
+
+
 def main():
     app()
 
 
 if __name__ == "__main__":
     main()
+
 

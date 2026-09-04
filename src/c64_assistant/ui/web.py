@@ -15,10 +15,11 @@ def run_app():
     st.title("🕹️ Commodore 64 & 6502 Assistant")
     st.caption("Motore ibrido: AI di Dominio + Validatore Deterministico Hardware (Ispirato a Rizzo AI Academy)")
 
-    tab_code, tab_mem, tab_banking = st.tabs([
+    tab_code, tab_mem, tab_banking, tab_rag = st.tabs([
         "⚡ Analizzatore & Validatore Assembly",
         "🔍 Memory Inspector",
         "🎛️ Banking 6510 ($0001)",
+        "📚 Knowledge Base RAG",
     ])
 
     with tab_code:
@@ -130,6 +131,51 @@ loop:
         b3.metric("I/O Chips ($D000)", "Attivo" if config.io_visible else "Disattivato")
         b4.metric("Char ROM ($D000)", "Visibile" if config.char_rom_visible else "Nascosta")
 
+    with tab_rag:
+        st.subheader("Consultazione Documentazione Tecnica e Manuali C64")
+        rag_query = st.text_input(
+            "Cerca argomenti hardware o indirizzi esadecimali (es. 'raster interrupt', '$D020', 'SID adsr', '$FFD2'):",
+            value="raster interrupt $D012",
+        )
+        col_chip, col_limit = st.columns([2, 1])
+        with col_chip:
+            chip_filter = st.selectbox(
+                "Filtra per Chip/Sottosistema (opzionale):",
+                ["Tutti", "VIC-II", "SID", "CIA", "KERNAL", "ZERO_PAGE", "CPU_6502"],
+            )
+        with col_limit:
+            limit = st.slider("Numero di risultati:", min_value=1, max_value=6, value=3)
+
+        if rag_query:
+            from c64_assistant.rag.retriever import C64KnowledgeRetriever
+
+            retriever = C64KnowledgeRetriever()
+            if chip_filter != "Tutti":
+                raw_results = retriever.find_by_chip(chip_filter)
+            else:
+                raw_results = retriever.query(rag_query, max_results=limit)
+
+            if raw_results:
+                st.write(f"Trovati **{len(raw_results)}** riferimenti tecnici pertinenti:")
+                for res in raw_results:
+                    with st.expander(
+                        f"📖 {res.chunk.source_title} - {res.chunk.section} (Match: {res.match_reason})",
+                        expanded=True,
+                    ):
+                        if res.chunk.chips or res.chunk.memory_addresses:
+                            st.caption(
+                                f"Chip: {', '.join(res.chunk.chips) or 'Generico'} | "
+                                f"Indirizzi: {', '.join(res.chunk.memory_addresses) or '-'}"
+                            )
+                        st.markdown(res.chunk.content)
+                        if res.chunk.code_snippets:
+                            st.write("**Snippet di Codice Assembly:**")
+                            for snip in res.chunk.code_snippets:
+                                st.code(snip, language="assembly")
+            else:
+                st.info("Nessun frammento di manuale trovato per i criteri specificati.")
+
 
 if __name__ == "__main__":
     run_app()
+

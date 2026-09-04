@@ -34,8 +34,8 @@ class AssistantEngine:
     def ask(self, query: str, code_snippet: str = "") -> AssistantResponse:
         """Elabora una richiesta utente con grounding sui manuali C64 e validazione automatica del codice."""
         # 1. Recupero contesto hardware (RAG)
-        context_chunks = self.retriever.query(query, max_results=2)
-        context_texts = [f"[{c.source_title} - {c.section}]\n{c.content}" for c in context_chunks]
+        context_results = self.retriever.query(query, max_results=2)
+        context_texts = [f"[{r.chunk.source_title} - {r.chunk.section}]\n{r.chunk.content}" for r in context_results]
 
         # 2. Validazione preliminare se viene fornito codice
         report = None
@@ -44,7 +44,7 @@ class AssistantEngine:
 
         # 3. Spiegazione tecnica (in modalità locale/offline fornisce analisi deterministica)
         explanation = (
-            f"Analisi per C64 (6502 NMOS) con contesto di riferimento su {len(context_chunks)} sezioni tecniche."
+            f"Analisi per C64 (6502 NMOS) con contesto di riferimento su {len(context_results)} sezioni tecniche."
         )
 
         return AssistantResponse(
