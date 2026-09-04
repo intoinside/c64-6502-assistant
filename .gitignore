@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Local data & vector DBs
+data/chroma_db/
+data/cache/
+*.sqlite3
+
+# Environment variables & secrets
+.env
+.env.local
+
+# IDEs & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Commodore 64 binaries / artifacts
+*.prg
+*.d64
+*.crt
+*.bin

@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "c64-6502-assistant"
+version = "0.1.0"
+description = "Motore di assistenza ibrido per lo sviluppo in Assembly 6502 su Commodore 64"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "C64 Assistant Team" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Assemblers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pydantic>=2.5.0",
+    "rich>=13.7.0",
+    "typer>=0.9.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+rag = [
+    "chromadb>=0.4.22",
+    "sentence-transformers>=2.3.0",
+]
+ai = [
+    "google-genai>=0.1.0",
+    "openai>=1.12.0",
+]
+ui = [
+    "streamlit>=1.31.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+]
+all = [
+    "c64-6502-assistant[rag,ai,ui,dev]",
+]
+
+[project.scripts]
+c64-assistant = "c64_assistant.ui.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM"]
+ignore = []
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
