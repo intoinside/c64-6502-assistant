@@ -128,9 +128,45 @@ def memory(
     console.print(Panel(content, title="C64 Memory Inspector", border_style="cyan"))
 
 
+@app.command()
+def banking(
+    value: str = typer.Argument("$37", help="Valore per il registro $0001 (es. $37, $36, $35, $30 o decimale 55)"),
+):
+    """Mostra la mappa di visibilità delle ROM e della RAM per un dato valore di banking nel registro $0001."""
+    val_str = value.strip()
+    if val_str.startswith("$"):
+        port_val = int(val_str[1:], 16)
+    elif val_str.lower().startswith("0x"):
+        port_val = int(val_str, 16)
+    else:
+        port_val = int(val_str)
+
+    config = C64MemoryMap.get_banking_config(port_val)
+
+    table = Table(title=f"Configurazione Banking 6510: {config.value_hex}", border_style="magenta")
+    table.add_column("Segnale / Bit", style="bold")
+    table.add_column("Stato", justify="center")
+    table.add_column("Area Influenzata")
+
+    table.add_row("LORAM (Bit 0)", "1 (ALTO)" if config.loram else "0 (BASSO)", "$A000-$BFFF (BASIC ROM)")
+    table.add_row("HIRAM (Bit 1)", "1 (ALTO)" if config.hiram else "0 (BASSO)", "$E000-$FFFF (Kernal ROM)")
+    table.add_row("CHAREN (Bit 2)", "1 (ALTO)" if config.charen else "0 (BASSO)", "$D000-$DFFF (I/O o Char ROM)")
+
+    console.print(table)
+
+    vis_content = f"[bold]Descrizione:[/] {config.description}\n\n"
+    vis_content += f"• [bold]BASIC ROM ($A000):[/] {'[green]VISIBILE[/]' if config.basic_rom_visible else '[yellow]RAM SOTTOSTANTE[/]'}\n"
+    vis_content += f"• [bold]KERNAL ROM ($E000):[/] {'[green]VISIBILE[/]' if config.kernal_rom_visible else '[yellow]RAM SOTTOSTANTE[/]'}\n"
+    vis_content += f"• [bold]I/O Chips ($D000):[/] {'[green]ATTIVI (VIC/SID/CIA)[/]' if config.io_visible else '[yellow]DISATTIVATI[/]'}\n"
+    vis_content += f"• [bold]Character ROM ($D000):[/] {'[green]VISIBILE[/]' if config.char_rom_visible else '[dim]Non visibile[/]'}"
+
+    console.print(Panel(vis_content, title="Visibilità Mappa di Memoria", border_style="green"))
+
+
 def main():
     app()
 
 
 if __name__ == "__main__":
     main()
+
