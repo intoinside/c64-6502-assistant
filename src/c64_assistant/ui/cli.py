@@ -1,11 +1,17 @@
 """Interfaccia a riga di comando (CLI) per C64-6502-Assistant."""
 
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+# Carica le variabili d'ambiente da .env (se presente nella root del progetto)
+load_dotenv()
 
 from c64_assistant.core.cycle_counter import CycleCounter
 from c64_assistant.core.memory import C64MemoryMap
@@ -210,8 +216,16 @@ def search(
 @app.command()
 def ask(
     prompt: str = typer.Argument(..., help="Domanda o richiesta di codice (es. 'come impostare una routine raster interrupt')"),
-    provider: str = typer.Option("offline", help="Provider LLM da utilizzare: offline, ollama, gemini, openai"),
-    model: str = typer.Option(None, help="Nome del modello specifico (es. qwen2.5-coder per Ollama)"),
+    provider: str = typer.Option(
+        None,
+        help="Provider LLM da utilizzare: offline, ollama, gemini, openai. "
+             "Se non specificato, usa LLM_PROVIDER dal file .env (default: offline).",
+    ),
+    model: str = typer.Option(
+        None,
+        help="Nome del modello specifico (es. qwen2.5-coder per Ollama). "
+             "Se non specificato, usa OLLAMA_MODEL dal file .env.",
+    ),
     code: str = typer.Option("", help="Snippet di codice assembly iniziale (opzionale)"),
     auto_fix: bool = typer.Option(True, "--auto-fix/--no-auto-fix", help="Abilita il ciclo di auto-correzione se il validatore trova errori"),
 ):
@@ -219,9 +233,19 @@ def ask(
     from c64_assistant.ai.engine import AssistantEngine
     from rich.syntax import Syntax
 
-    console.print(f"[bold cyan]Interrogazione Assistente C64[/] (Provider: [bold yellow]{provider}[/])...\n")
+    # Risolve il provider: CLI flag > .env > default "offline"
+    resolved_provider = provider or os.getenv("LLM_PROVIDER", "offline")
+    # Risolve il modello: CLI flag > .env OLLAMA_MODEL (solo per Ollama) > None (usa default del client)
+    resolved_model = model or (os.getenv("OLLAMA_MODEL") if resolved_provider == "ollama" else None)
 
-    engine = AssistantEngine(provider=provider, model=model)
+    console.print(
+        f"[bold cyan]Interrogazione Assistente C64[/] "
+        f"(Provider: [bold yellow]{resolved_provider}[/]"
+        + (f" | Modello: [bold green]{resolved_model}[/]" if resolved_model else "")
+        + ")...\n"
+    )
+
+    engine = AssistantEngine(provider=resolved_provider, model=resolved_model)
     response = engine.ask(prompt, code_snippet=code, auto_fix=auto_fix)
 
     console.print(Panel(response.explanation, title="Spiegazione Tecnica", border_style="cyan"))

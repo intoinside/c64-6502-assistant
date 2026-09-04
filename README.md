@@ -88,69 +88,296 @@ c64-6502-assistant/
 
 ---
 
-## 🚀 Quickstart
+## 🛠️ Installazione
 
-### 1. Requisiti e Installazione
+### Prerequisiti
 
-Requisito: **Python 3.10 o superiore**.
+| Requisito | Versione minima | Note |
+|---|---|---|
+| **Python** | 3.10+ | [Download](https://www.python.org/downloads/) |
+| **Git** | Qualsiasi | Per clonare il repository |
+| **Ollama** *(opzionale)* | 0.1+ | Solo per il provider LLM locale. [Download](https://ollama.com/) |
+
+### 1. Clona il repository
 
 ```bash
-# 1. Clona il repository
 git clone https://github.com/tuo-username/c64-6502-assistant.git
 cd c64-6502-assistant
-
-# 2. Crea e attiva l'ambiente virtuale
-python -m venv .venv
-# Su Windows:
-.venv\Scripts\activate
-# Su Linux/macOS:
-source .venv/bin/activate
-
-# 3. Installa il pacchetto in modalità editabile con dipendenze di sviluppo
-pip install -e .[dev]
 ```
 
-### 2. Utilizzo della CLI
+### 2. Crea e attiva l'ambiente virtuale
 
-Il pacchetto mette a disposizione il comando `c64-assistant`:
+```bash
+python -m venv .venv
+```
 
-#### Calcolo dei cicli di clock e linee raster
-Calcola i cicli di clock spesi e le linee raster impegnate per schermi PAL e NTSC:
+**Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**Windows (CMD):**
+```cmd
+.venv\Scripts\activate.bat
+```
+
+**Linux / macOS:**
+```bash
+source .venv/bin/activate
+```
+
+### 3. Installa le dipendenze
+
+> **⚠️ Attenzione:** I comandi seguenti devono essere eseguiti dalla **root del repository** (la cartella `c64-6502-assistant/` che contiene il file `pyproject.toml`). Se ricevi l'errore *"does not appear to be a Python project"*, significa che sei nella directory sbagliata.
+>
+> ```powershell
+> # Verifica di essere nella cartella corretta (deve contenere pyproject.toml)
+> cd P:\c64-6502-assistant
+> dir pyproject.toml
+> ```
+
+Prima di installare, aggiorna `pip` e il build backend `hatchling` alla versione più recente (obbligatorio per evitare errori di compatibilità):
+
+```bash
+pip install --upgrade pip hatchling
+```
+
+Poi scegli il profilo di installazione più adatto alle tue esigenze:
+
+```bash
+# ✅ Installazione base (CLI + validatore deterministico)
+pip install -e .
+
+# 🤖 Con supporto AI (provider Gemini e OpenAI)
+pip install -e .[ai]
+
+# 📚 Con supporto RAG (ChromaDB + Sentence Transformers)
+pip install -e .[rag]
+
+# 🌐 Con interfaccia Web (Streamlit)
+pip install -e .[ui]
+
+# 🚀 Tutto incluso (AI + RAG + UI + strumenti di sviluppo)
+pip install -e .[all]
+```
+
+### 4. (Opzionale) Configura le variabili d'ambiente
+
+Crea un file `.env` nella root del progetto per configurare i provider AI cloud:
+
+```bash
+# .env — copia e personalizza questo template
+# Lascia vuoto o rimuovi le righe per i provider che non usi
+
+# Google Gemini
+GEMINI_API_KEY=la-tua-chiave-api-gemini
+
+# OpenAI
+OPENAI_API_KEY=la-tua-chiave-api-openai
+
+# Ollama (locale, nessuna chiave richiesta)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
+
+# Provider da usare di default: "ollama" | "gemini" | "openai" | "offline"
+LLM_PROVIDER=offline
+```
+
+> **Nota:** In assenza del file `.env`, l'assistente funziona in modalità `offline`, che usa template deterministici predefiniti senza richiedere alcun modello AI.
+
+---
+
+## 🚀 Utilizzo
+
+### CLI — Comando `c64-assistant`
+
+Il pacchetto installa il comando `c64-assistant` direttamente nel PATH dell'ambiente virtuale.
+
+---
+
+#### `cycles` — Calcola i cicli di clock e le linee raster
+
+Analizza una sequenza di istruzioni Assembly e restituisce il conteggio esatto dei cicli macchina, le linee raster impegnate e il budget disponibile per schermi PAL e NTSC.
+
 ```bash
 c64-assistant cycles "lda #$00 \n sta $d020 \n nop"
 ```
 
-#### Validazione di un file sorgente Assembly
-Controlla che un file sorgente `.asm` non contenga istruzioni non valide per il MOS 6502 del C64:
+**Output di esempio:**
+```
+┌─────────────────────────────────────────────────┐
+│           Analisi Cicli — MOS 6502 NMOS         │
+├──────────────┬──────────────────────────────────┤
+│ Istruzione   │  Cicli │ Modalità                │
+├──────────────┼──────────────────────────────────┤
+│ LDA #$00     │      2 │ Immediato               │
+│ STA $D020    │      4 │ Assoluto                │
+│ NOP          │      2 │ Implicito               │
+├──────────────┼──────────────────────────────────┤
+│ TOTALE       │      8 │                         │
+├──────────────┴──────────────────────────────────┤
+│ PAL  (63 cicli/raster): 0.13 linee raster       │
+│ NTSC (65 cicli/raster): 0.12 linee raster       │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+#### `validate` — Valida un file sorgente Assembly
+
+Controlla che un file sorgente `.asm` non contenga istruzioni illegali per il MOS 6502 NMOS del C64 (es. opcode del 65C02, modalità di indirizzamento errate).
+
 ```bash
 c64-assistant validate mio_codice.asm
 ```
 
-#### Ispezione della mappa di memoria del C64
-Verifica permessi, registri hardware associati e sicurezza della Zero Page:
-```bash
-# Registro colore del bordo (VIC-II)
-c64-assistant memory '$D020'
-
-# Locazione Zero Page (verifica se sicura o usata dal Kernal/BASIC)
-c64-assistant memory '$FB'
+**Output (codice valido):**
+```
+✅ Validazione superata — nessun errore trovato in mio_codice.asm
 ```
 
-### 3. Interfaccia Web Locale (Streamlit)
+**Output (errori rilevati):**
+```
+❌ Errori trovati in mio_codice.asm:
 
-Per avviare la dashboard grafica interattiva:
+  Riga 12: BRA $1234
+    → Opcode 65C02: non supportato dal MOS 6502 NMOS del C64.
+      Usa invece: BEQ/BNE/BCC/BCS/BMI/BPL/BVC/BVS
+
+  Riga 18: STZ $D020
+    → Opcode 65C02: non supportato dal MOS 6502 NMOS del C64.
+      Usa invece: LDA #$00 / STA $D020
+```
+
+---
+
+#### `memory` — Ispeziona la mappa di memoria del C64
+
+Verifica informazioni dettagliate su qualsiasi indirizzo della mappa di memoria del C64: nome del registro hardware, chip associato, permessi di lettura/scrittura e avvisi di sicurezza per la Zero Page.
 
 ```bash
+# Registro del colore del bordo (VIC-II)
+c64-assistant memory '$D020'
+
+# Locazione nella Zero Page (sicura o riservata al Kernal/BASIC?)
+c64-assistant memory '$FB'
+
+# Qualsiasi indirizzo in formato hex
+c64-assistant memory '$DC00'
+```
+
+**Output di esempio (`$D020`):**
+```
+┌──────────────────────────────────────────────────┐
+│   Mappa Memoria C64 — $D020                      │
+├──────────────────────────────────────────────────┤
+│  Nome:       VIC-II Border Color Register        │
+│  Chip:       VIC-II (MOS 6569 PAL / 6567 NTSC)  │
+│  Accesso:    Lettura / Scrittura                 │
+│  Categoria:  I/O Hardware ($D000–$DFFF)          │
+│  Avviso:     Nessuno — uso sicuro                │
+└──────────────────────────────────────────────────┘
+```
+
+---
+
+#### `ask` — Assistente AI con Guardrail (Modalità Interattiva)
+
+Poni domande in linguaggio naturale sul C64, la programmazione Assembly 6502 e i registri hardware. La risposta dell'AI viene arricchita dal RAG (documentazione storica) e validata automaticamente dal motore deterministico prima di essere mostrata.
+
+```bash
+# Sessione interattiva (REPL)
+c64-assistant ask
+
+# Singola domanda diretta
+c64-assistant ask "Come si legge il joystick dalla porta 2?"
+c64-assistant ask "Scrivi una routine per cancellare lo schermo"
+c64-assistant ask "Quanti cicli usa LDA ($FB,X)?"
+```
+
+**Scegliere il provider LLM:**
+```bash
+# Modalità offline (default, nessun modello richiesto)
+c64-assistant ask --provider offline "Spiega il registro SID $D400"
+
+# Ollama locale (es. llama3, mistral, codellama)
+c64-assistant ask --provider ollama "Genera una routine di attesa"
+
+# Google Gemini (richiede GEMINI_API_KEY in .env)
+c64-assistant ask --provider gemini "Come funziona il raster interrupt?"
+
+# OpenAI (richiede OPENAI_API_KEY in .env)
+c64-assistant ask --provider openai "Spiega il memory banking del C64"
+```
+
+---
+
+### 🌐 Interfaccia Web (Streamlit)
+
+Per chi preferisce un'interfaccia grafica interattiva, avvia la dashboard web locale:
+
+```bash
+# Assicurati di aver installato le dipendenze UI
 pip install -e .[ui]
+
+# Avvia il server locale
 streamlit run src/c64_assistant/ui/web.py
 ```
 
-### 4. Esecuzione dei Test
+Il browser si aprirà automaticamente su `http://localhost:8501`. La dashboard include le seguenti schede:
 
-Tutti i moduli del core deterministico e RAG sono coperti da test automatici:
+| Scheda | Funzione |
+|---|---|
+| **🏠 Home** | Panoramica del progetto e stato del sistema |
+| **⚙️ Cicli & Raster** | Calcolatore interattivo di cicli macchina e budget PAL/NTSC |
+| **✅ Validatore** | Editor inline per validare codice Assembly in tempo reale |
+| **🗺️ Mappa Memoria** | Explorer interattivo della mappa di memoria del C64 |
+| **📚 Knowledge Base** | Ricerca semantica nella documentazione storica indicizzata |
+| **🤖 Assistente AI** | Chat con il motore AI + guardrail deterministici |
+
+---
+
+### 🧪 Esecuzione dei Test
+
+Tutti i moduli del core deterministico, RAG e AI sono coperti da test automatici con `pytest`:
 
 ```bash
+# Esegui tutta la suite di test
 pytest
+
+# Con report di copertura del codice
+pytest --cov=src/c64_assistant --cov-report=term-missing
+
+# Filtra per modulo specifico
+pytest tests/test_core.py
+pytest tests/test_rag.py
+pytest tests/test_ai.py
+```
+
+---
+
+## 🔌 Provider LLM — Guida Rapida
+
+| Provider | Connessione | Setup richiesto | Consigliato per |
+|---|---|---|---|
+| `offline` | Nessuna | Nulla | Test rapidi, uso senza AI |
+| `ollama` | Locale | Installare [Ollama](https://ollama.com/) + un modello | Uso quotidiano privacy-first |
+| `gemini` | Cloud | `GEMINI_API_KEY` in `.env` | Risposte di alta qualità |
+| `openai` | Cloud | `OPENAI_API_KEY` in `.env` | Alternativa cloud |
+
+### Installare un modello con Ollama
+
+```bash
+# Scarica e avvia Ollama (una tantum)
+# → https://ollama.com/download
+
+# Scarica un modello di codice (esempi)
+ollama pull llama3          # Uso generale
+ollama pull codellama       # Ottimizzato per il codice
+ollama pull mistral         # Bilanciato velocità/qualità
+
+# Verifica che Ollama sia attivo
+ollama list
 ```
 
 ---
@@ -160,9 +387,10 @@ pytest
 - [x] **Fase 1: Setup di progetto, packaging PEP 621 e CI/CD**
 - [x] **Fase 2: Motore deterministico base (ISA 6502, Cycle Counter, Memory Map C64)**
 - [x] **Fase 3: CLI interattiva (Rich/Typer) e Dashboard Web (Streamlit)**
-- [ ] **Fase 4: RAG vettoriale avanzato con database locale (ChromaDB) e manuali indicizzati**
-- [ ] **Fase 5: Integrazione multi-provider LLM (Ollama locale + API esterne facoltative)**
+- [x] **Fase 4: RAG vettoriale con knowledge base locale e manuali indicizzati**
+- [x] **Fase 5: Integrazione multi-provider LLM (Ollama + Gemini + OpenAI + Offline) con guardrail**
 - [ ] **Fase 6: Analizzatore e simulatore avanzato di interrupt raster del VIC-II**
+- [ ] **Fase 7: Supporto VICE debugger integration e export .prg**
 
 ---
 
