@@ -12,14 +12,22 @@ Il chip VIC-II controlla l'uscita video, la gestione dei colori, il testo, i bit
   - Bit 3: Dimensione Schermo (RSEL) (1 = 25 righe, 0 = 24 righe per scroll verticale).
   - Bit 0-2: Scroll verticale fluido (0-7 pixel).
 - **$D012:** Registro del contatore della riga raster corrente (0-255). Se scritto, imposta la linea di trigger per il raster interrupt.
+- **$D013:** Coordinata X della penna luminosa.
+- **$D014:** Coordinata Y della penna luminosa.
 - **$D015:** Abilitazione sprite (1 bit per sprite: 1=attivo, 0=spento).
 - **$D016:** Registro di Controllo 2:
   - Bit 4: Multicolor Mode (MCM) per testo o bitmap (1=attivo).
   - Bit 3: Dimensione Schermo (CSEL) (1 = 40 colonne, 0 = 38 colonne per scroll orizzontale).
   - Bit 0-2: Scroll orizzontale fluido (0-7 pixel).
+- **$D017:** Altezza sprite doppia 
 - **$D018:** Memory Setup (Bit 4-7: indirizzo Screen RAM a blocchi di 1 KB; Bit 1-3: indirizzo Character ROM / Bitmap a blocchi di 2 KB/8 KB).
 - **$D019:** Interrupt Flag Register (Bit 0: Raster IRQ avvenuto. Scrivere '1' su questo bit per confermare e azzerare l'interrupt).
 - **$D01A:** Interrupt Mask Register (Bit 0: Abilita la generazione di Raster Interrupts).
+- **$D01B:** Priorità degli sprite, definisce se lo sprite deve essere disegnato davanti o dietro allo sfondo.
+- **$D01C:** Sprite multicolor o ad alta risoluzione.
+- **$D01D:** Larghezza sprite doppia. 
+- **$D01E:** Registro collisioni tra sprite.
+- **$D01F:** Registro collisioni degli sprite con lo sfondo.
 - **$D020:** Colore del bordo dello schermo (valori da 0 a 15).
 - **$D021:** Colore dello sfondo standard (Background 0).
 - **$D022-$D024:** Colori sfondo ausiliari 1-3 in modalità Multicolor ed ECM.
@@ -46,3 +54,21 @@ Il VIC-II può indirizzare direttamente solo 16 KB di memoria alla volta. La sce
 - **%01 (Valore 1):** Banco 2 ($8000-$BFFF).
 - **%00 (Valore 0):** Banco 3 ($C000-$FFFF).
 *Nota:* I bit sono invertiti (0 seleziona l'area alta, 1 l'area bassa). Modificare sempre preservando gli altri bit con `ora` e `and`.
+
+## Codici colori
+- **0/$00** Nero
+- **1/$01**	Bianco
+- **2/$02**	Rosso
+- **3/$03**	Ciano
+- **4/$04**	Viola
+- **5/$05**	Verde
+- **6/$06**	Blue
+- **7/$07**	Giallo
+- **8/$08**	Arancione
+- **9/$09**	Marrone
+- **10/$0A**	Rosa
+- **11/$0B**	Grigio scuro
+- **12/$0C**	Grigio
+- **13/$0D**	Verde chiaro
+- **14/$0E**	Blu chiaro
+- **15/$0F**	Grigio chiaro

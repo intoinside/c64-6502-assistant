@@ -5,6 +5,19 @@ La Kernal Jump Table garantisce la retrocompatibilità del codice machine langua
 
 ## Routine di Input / Output Principali
 
+### $FF9F - SCNKEY (Scansiona la tastiere)
+- **Scopo:** Esegue una scansione della tastiera del Commodore 64 e verifica la presenza di tasti premuti..
+- **Parametri di ingresso:** Nessuno.
+- **Registri modificati:** `A`, `X`, `Y`.
+- **Esempio:**
+```assembly
+  jsr SCNKEY     ; Scan tastiera
+  jsr GETIN      ; Leggi carattere
+  cmp #0         ; E' null?
+  beq GET        ; Si, nuova scansione
+  jsr CHROUT     ; Scrivilo
+```
+
 ### $FFD2 - BSOUT / CHROUT (Stampa Carattere)
 - **Scopo:** Invia un byte/carattere ASCII-PETSCII al canale di uscita attivo (per default lo schermo).
 - **Parametri di ingresso:** `A` = codice carattere PETSCII da stampare.
