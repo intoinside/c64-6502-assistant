@@ -1,5 +1,6 @@
 # c64-6502-assistant
 
+![c64-6502-assistant](./assets/c64-6502-assistant.jpg)
 ### Motore di assistenza ibrido per lo sviluppo Assembly MOS 6502 su Commodore 64
 
 *Scrivi codice Assembly per il C64 con la potenza dell'Intelligenza Artificiale e la precisione deterministica del validatore hardware.*
